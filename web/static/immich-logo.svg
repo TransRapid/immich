@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"  viewBox="0 0 1024 1024" text-rendering="geometricPrecision" shape-rendering="geometricPrecision" fill="#243b51" preserveAspectRatio="xMaxYMax slice">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 1024 1024" text-rendering="geometricPrecision" shape-rendering="geometricPrecision" fill="#243b51" preserveAspectRatio="xMaxYMax slice">
   <ellipse data-px-label="Border Ring" fill="#243b51" stroke="#003a73" transform="translate(512, 512)" rx="507.6903" ry="507.6903"/>
   <g>
     <ellipse data-px-label="Inner Ring" fill="#efe6de" stroke="#003a73" transform="translate(511.9999, 511.9999)" rx="497.1537" ry="497.1537"/>
