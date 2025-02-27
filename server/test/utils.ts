@@ -1,25 +1,28 @@
+import { Kysely, sql } from 'kysely';
+import { PostgresJSDialect } from 'kysely-postgres-js';
 import { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { Writable } from 'node:stream';
+import { parse } from 'pg-connection-string';
 import { PNG } from 'pngjs';
+import postgres, { Notice } from 'postgres';
+import { DB } from 'src/db';
 import { ImmichWorker } from 'src/enum';
-import { IAlbumRepository } from 'src/interfaces/album.interface';
-import { IAssetRepository } from 'src/interfaces/asset.interface';
-import { ICryptoRepository } from 'src/interfaces/crypto.interface';
-import { IEventRepository } from 'src/interfaces/event.interface';
-import { IMachineLearningRepository } from 'src/interfaces/machine-learning.interface';
-import { IUserRepository } from 'src/interfaces/user.interface';
 import { AccessRepository } from 'src/repositories/access.repository';
 import { ActivityRepository } from 'src/repositories/activity.repository';
 import { AlbumUserRepository } from 'src/repositories/album-user.repository';
+import { AlbumRepository } from 'src/repositories/album.repository';
 import { ApiKeyRepository } from 'src/repositories/api-key.repository';
+import { AssetRepository } from 'src/repositories/asset.repository';
 import { AuditRepository } from 'src/repositories/audit.repository';
 import { ConfigRepository } from 'src/repositories/config.repository';
 import { CronRepository } from 'src/repositories/cron.repository';
 import { CryptoRepository } from 'src/repositories/crypto.repository';
 import { DatabaseRepository } from 'src/repositories/database.repository';
+import { EventRepository } from 'src/repositories/event.repository';
 import { JobRepository } from 'src/repositories/job.repository';
 import { LibraryRepository } from 'src/repositories/library.repository';
 import { LoggingRepository } from 'src/repositories/logging.repository';
+import { MachineLearningRepository } from 'src/repositories/machine-learning.repository';
 import { MapRepository } from 'src/repositories/map.repository';
 import { MediaRepository } from 'src/repositories/media.repository';
 import { MemoryRepository } from 'src/repositories/memory.repository';
@@ -36,10 +39,12 @@ import { SessionRepository } from 'src/repositories/session.repository';
 import { SharedLinkRepository } from 'src/repositories/shared-link.repository';
 import { StackRepository } from 'src/repositories/stack.repository';
 import { StorageRepository } from 'src/repositories/storage.repository';
+import { SyncRepository } from 'src/repositories/sync.repository';
 import { SystemMetadataRepository } from 'src/repositories/system-metadata.repository';
 import { TagRepository } from 'src/repositories/tag.repository';
 import { TelemetryRepository } from 'src/repositories/telemetry.repository';
 import { TrashRepository } from 'src/repositories/trash.repository';
+import { UserRepository } from 'src/repositories/user.repository';
 import { VersionHistoryRepository } from 'src/repositories/version-history.repository';
 import { ViewRepository } from 'src/repositories/view-repository';
 import { BaseService } from 'src/services/base.service';
@@ -76,6 +81,7 @@ import { newSessionRepositoryMock } from 'test/repositories/session.repository.m
 import { newSharedLinkRepositoryMock } from 'test/repositories/shared-link.repository.mock';
 import { newStackRepositoryMock } from 'test/repositories/stack.repository.mock';
 import { newStorageRepositoryMock } from 'test/repositories/storage.repository.mock';
+import { newSyncRepositoryMock } from 'test/repositories/sync.repository.mock';
 import { newSystemMetadataRepositoryMock } from 'test/repositories/system-metadata.repository.mock';
 import { newTagRepositoryMock } from 'test/repositories/tag.repository.mock';
 import { ITelemetryRepositoryMock, newTelemetryRepositoryMock } from 'test/repositories/telemetry.repository.mock';
@@ -89,6 +95,8 @@ import { Mocked, vitest } from 'vitest';
 type Overrides = {
   worker?: ImmichWorker;
   metadataRepository?: MetadataRepository;
+  syncRepository?: SyncRepository;
+  userRepository?: UserRepository;
 };
 type BaseServiceArgs = ConstructorParameters<typeof BaseService>;
 type Constructor<Type, Args extends Array<any>> = {
@@ -100,20 +108,20 @@ type IAccessRepository = { [K in keyof AccessRepository]: RepositoryInterface<Ac
 export type ServiceMocks = {
   access: IAccessRepositoryMock;
   activity: Mocked<RepositoryInterface<ActivityRepository>>;
-  album: Mocked<IAlbumRepository>;
+  album: Mocked<RepositoryInterface<AlbumRepository>>;
   albumUser: Mocked<RepositoryInterface<AlbumUserRepository>>;
   apiKey: Mocked<RepositoryInterface<ApiKeyRepository>>;
   audit: Mocked<RepositoryInterface<AuditRepository>>;
-  asset: Mocked<IAssetRepository>;
+  asset: Mocked<RepositoryInterface<AssetRepository>>;
   config: Mocked<RepositoryInterface<ConfigRepository>>;
   cron: Mocked<RepositoryInterface<CronRepository>>;
-  crypto: Mocked<ICryptoRepository>;
+  crypto: Mocked<RepositoryInterface<CryptoRepository>>;
   database: Mocked<RepositoryInterface<DatabaseRepository>>;
-  event: Mocked<IEventRepository>;
+  event: Mocked<RepositoryInterface<EventRepository>>;
   job: Mocked<RepositoryInterface<JobRepository>>;
   library: Mocked<RepositoryInterface<LibraryRepository>>;
   logger: Mocked<ILoggingRepository>;
-  machineLearning: Mocked<IMachineLearningRepository>;
+  machineLearning: Mocked<RepositoryInterface<MachineLearningRepository>>;
   map: Mocked<RepositoryInterface<MapRepository>>;
   media: Mocked<RepositoryInterface<MediaRepository>>;
   memory: Mocked<RepositoryInterface<MemoryRepository>>;
@@ -134,7 +142,7 @@ export type ServiceMocks = {
   tag: Mocked<RepositoryInterface<TagRepository>>;
   telemetry: ITelemetryRepositoryMock;
   trash: Mocked<RepositoryInterface<TrashRepository>>;
-  user: Mocked<IUserRepository>;
+  user: Mocked<RepositoryInterface<UserRepository>>;
   versionHistory: Mocked<RepositoryInterface<VersionHistoryRepository>>;
   view: Mocked<RepositoryInterface<ViewRepository>>;
 };
@@ -143,7 +151,7 @@ export const newTestService = <T extends BaseService>(
   Service: Constructor<T, BaseServiceArgs>,
   overrides?: Overrides,
 ) => {
-  const { metadataRepository } = overrides || {};
+  const { metadataRepository, userRepository, syncRepository } = overrides || {};
 
   const accessMock = newAccessRepositoryMock();
   const loggerMock = newLoggingRepositoryMock();
@@ -179,11 +187,12 @@ export const newTestService = <T extends BaseService>(
   const sharedLinkMock = newSharedLinkRepositoryMock();
   const stackMock = newStackRepositoryMock();
   const storageMock = newStorageRepositoryMock();
+  const syncMock = (syncRepository || newSyncRepositoryMock()) as Mocked<RepositoryInterface<SyncRepository>>;
   const systemMock = newSystemMetadataRepositoryMock();
   const tagMock = newTagRepositoryMock();
   const telemetryMock = newTelemetryRepositoryMock();
   const trashMock = newTrashRepositoryMock();
-  const userMock = newUserRepositoryMock();
+  const userMock = (userRepository || newUserRepositoryMock()) as Mocked<RepositoryInterface<UserRepository>>;
   const versionHistoryMock = newVersionHistoryRepositoryMock();
   const viewMock = newViewRepositoryMock();
 
@@ -192,39 +201,40 @@ export const newTestService = <T extends BaseService>(
     accessMock as IAccessRepository as AccessRepository,
     activityMock as RepositoryInterface<ActivityRepository> as ActivityRepository,
     auditMock as RepositoryInterface<AuditRepository> as AuditRepository,
-    albumMock,
+    albumMock as RepositoryInterface<AlbumRepository> as AlbumRepository,
     albumUserMock as RepositoryInterface<AlbumUserRepository> as AlbumUserRepository,
-    assetMock,
-    configMock,
+    assetMock as RepositoryInterface<AssetRepository> as AssetRepository,
+    configMock as RepositoryInterface<ConfigRepository> as ConfigRepository,
     cronMock as RepositoryInterface<CronRepository> as CronRepository,
     cryptoMock as RepositoryInterface<CryptoRepository> as CryptoRepository,
-    databaseMock,
-    eventMock,
-    jobMock,
+    databaseMock as RepositoryInterface<DatabaseRepository> as DatabaseRepository,
+    eventMock as RepositoryInterface<EventRepository> as EventRepository,
+    jobMock as RepositoryInterface<JobRepository> as JobRepository,
     apiKeyMock as RepositoryInterface<ApiKeyRepository> as ApiKeyRepository,
-    libraryMock,
-    machineLearningMock,
+    libraryMock as RepositoryInterface<LibraryRepository> as LibraryRepository,
+    machineLearningMock as RepositoryInterface<MachineLearningRepository> as MachineLearningRepository,
     mapMock as RepositoryInterface<MapRepository> as MapRepository,
     mediaMock as RepositoryInterface<MediaRepository> as MediaRepository,
     memoryMock as RepositoryInterface<MemoryRepository> as MemoryRepository,
     metadataMock as RepositoryInterface<MetadataRepository> as MetadataRepository,
-    moveMock,
+    moveMock as RepositoryInterface<MoveRepository> as MoveRepository,
     notificationMock as RepositoryInterface<NotificationRepository> as NotificationRepository,
     oauthMock as RepositoryInterface<OAuthRepository> as OAuthRepository,
-    partnerMock,
-    personMock,
+    partnerMock as RepositoryInterface<PartnerRepository> as PartnerRepository,
+    personMock as RepositoryInterface<PersonRepository> as PersonRepository,
     processMock as RepositoryInterface<ProcessRepository> as ProcessRepository,
-    searchMock,
+    searchMock as RepositoryInterface<SearchRepository> as SearchRepository,
     serverInfoMock as RepositoryInterface<ServerInfoRepository> as ServerInfoRepository,
     sessionMock as RepositoryInterface<SessionRepository> as SessionRepository,
-    sharedLinkMock,
-    stackMock,
-    storageMock,
+    sharedLinkMock as RepositoryInterface<SharedLinkRepository> as SharedLinkRepository,
+    stackMock as RepositoryInterface<StackRepository> as StackRepository,
+    storageMock as RepositoryInterface<StorageRepository> as StorageRepository,
+    syncMock as RepositoryInterface<SyncRepository> as SyncRepository,
     systemMock as RepositoryInterface<SystemMetadataRepository> as SystemMetadataRepository,
-    tagMock,
+    tagMock as RepositoryInterface<TagRepository> as TagRepository,
     telemetryMock as unknown as TelemetryRepository,
     trashMock as RepositoryInterface<TrashRepository> as TrashRepository,
-    userMock,
+    userMock as RepositoryInterface<UserRepository> as UserRepository,
     versionHistoryMock as RepositoryInterface<VersionHistoryRepository> as VersionHistoryRepository,
     viewMock as RepositoryInterface<ViewRepository> as ViewRepository,
   );
@@ -295,6 +305,57 @@ function* newPngFactory() {
 }
 
 const pngFactory = newPngFactory();
+
+export const getKyselyDB = async (suffix?: string): Promise<Kysely<DB>> => {
+  const parsed = parse(process.env.IMMICH_TEST_POSTGRES_URL!);
+
+  const parsedOptions = {
+    ...parsed,
+    ssl: false,
+    host: parsed.host ?? undefined,
+    port: parsed.port ? Number(parsed.port) : undefined,
+    database: parsed.database ?? undefined,
+  };
+
+  const driverOptions = {
+    ...parsedOptions,
+    onnotice: (notice: Notice) => {
+      if (notice['severity'] !== 'NOTICE') {
+        console.warn('Postgres notice:', notice);
+      }
+    },
+    max: 10,
+    types: {
+      date: {
+        to: 1184,
+        from: [1082, 1114, 1184],
+        serialize: (x: Date | string) => (x instanceof Date ? x.toISOString() : x),
+        parse: (x: string) => new Date(x),
+      },
+      bigint: {
+        to: 20,
+        from: [20],
+        parse: (value: string) => Number.parseInt(value),
+        serialize: (value: number) => value.toString(),
+      },
+    },
+    connection: {
+      TimeZone: 'UTC',
+    },
+  };
+
+  const kysely = new Kysely<DB>({
+    dialect: new PostgresJSDialect({ postgres: postgres({ ...driverOptions, max: 1, database: 'postgres' }) }),
+  });
+  const randomSuffix = Math.random().toString(36).slice(2, 7);
+  const dbName = `immich_${suffix ?? randomSuffix}`;
+
+  await sql.raw(`CREATE DATABASE ${dbName} WITH TEMPLATE immich OWNER postgres;`).execute(kysely);
+
+  return new Kysely<DB>({
+    dialect: new PostgresJSDialect({ postgres: postgres({ ...driverOptions, database: dbName }) }),
+  });
+};
 
 export const newRandomImage = () => {
   const { value } = pngFactory.next();

@@ -1,8 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { defaults, SystemConfig } from 'src/config';
-import { ImmichWorker } from 'src/enum';
-import { JobCommand, JobItem, JobName, JobStatus, QueueName } from 'src/interfaces/job.interface';
+import { ImmichWorker, JobCommand, JobName, JobStatus, QueueName } from 'src/enum';
 import { JobService } from 'src/services/job.service';
+import { JobItem } from 'src/types';
 import { assetStub } from 'test/fixtures/asset.stub';
 import { newTestService, ServiceMocks } from 'test/utils';
 
@@ -40,6 +40,8 @@ describe(JobService.name, () => {
         { name: JobName.ASSET_DELETION_CHECK },
         { name: JobName.USER_DELETE_CHECK },
         { name: JobName.PERSON_CLEANUP },
+        { name: JobName.MEMORIES_CLEANUP },
+        { name: JobName.MEMORIES_CREATE },
         { name: JobName.QUEUE_GENERATE_THUMBNAILS, data: { force: false } },
         { name: JobName.CLEAN_OLD_AUDIT_LOGS },
         { name: JobName.USER_SYNC_USAGE },

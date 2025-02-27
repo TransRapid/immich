@@ -4,9 +4,8 @@ import { Stats } from 'node:fs';
 import { constants } from 'node:fs/promises';
 import { AssetEntity } from 'src/entities/asset.entity';
 import { ExifEntity } from 'src/entities/exif.entity';
-import { AssetType, ExifOrientation, ImmichWorker, SourceType } from 'src/enum';
-import { WithoutProperty } from 'src/interfaces/asset.interface';
-import { JobName, JobStatus } from 'src/interfaces/job.interface';
+import { AssetType, ExifOrientation, ImmichWorker, JobName, JobStatus, SourceType } from 'src/enum';
+import { WithoutProperty } from 'src/repositories/asset.repository';
 import { ImmichTags } from 'src/repositories/metadata.repository';
 import { MetadataService } from 'src/services/metadata.service';
 import { assetStub } from 'test/fixtures/asset.stub';
@@ -228,6 +227,7 @@ describe(MetadataService.name, () => {
         id: assetStub.image.id,
         duration: null,
         fileCreatedAt: sidecarDate,
+        fileModifiedAt: new Date('2023-02-23T05:06:29.716Z'),
         localDateTime: sidecarDate,
       });
     });
@@ -247,6 +247,7 @@ describe(MetadataService.name, () => {
         id: assetStub.image.id,
         duration: null,
         fileCreatedAt: fileModifiedAt,
+        fileModifiedAt,
         localDateTime: fileModifiedAt,
       });
     });
@@ -264,6 +265,7 @@ describe(MetadataService.name, () => {
         id: assetStub.image.id,
         duration: null,
         fileCreatedAt,
+        fileModifiedAt,
         localDateTime: fileCreatedAt,
       });
     });
@@ -298,6 +300,7 @@ describe(MetadataService.name, () => {
         id: assetStub.image.id,
         duration: null,
         fileCreatedAt: assetStub.image.fileCreatedAt,
+        fileModifiedAt: assetStub.image.fileModifiedAt,
         localDateTime: assetStub.image.fileCreatedAt,
       });
     });
@@ -320,6 +323,7 @@ describe(MetadataService.name, () => {
         id: assetStub.withLocation.id,
         duration: null,
         fileCreatedAt: assetStub.withLocation.createdAt,
+        fileModifiedAt: assetStub.withLocation.createdAt,
         localDateTime: new Date('2023-02-22T05:06:29.716Z'),
       });
     });
@@ -841,6 +845,7 @@ describe(MetadataService.name, () => {
         id: assetStub.image.id,
         duration: null,
         fileCreatedAt: dateForTest,
+        fileModifiedAt: dateForTest,
         localDateTime: dateForTest,
       });
     });

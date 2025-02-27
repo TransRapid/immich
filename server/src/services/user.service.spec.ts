@@ -1,7 +1,6 @@
 import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { UserEntity } from 'src/entities/user.entity';
-import { CacheControl, UserMetadataKey } from 'src/enum';
-import { JobName } from 'src/interfaces/job.interface';
+import { CacheControl, JobName, UserMetadataKey } from 'src/enum';
 import { UserService } from 'src/services/user.service';
 import { ImmichFileResponse } from 'src/utils/file';
 import { authStub } from 'test/fixtures/auth.stub';
@@ -78,9 +77,9 @@ describe(UserService.name, () => {
   });
 
   describe('getMe', () => {
-    it("should get the auth user's info", () => {
+    it("should get the auth user's info", async () => {
       const user = authStub.admin.user;
-      expect(sut.getMe(authStub.admin)).toMatchObject({
+      await expect(sut.getMe(authStub.admin)).resolves.toMatchObject({
         id: user.id,
         email: user.email,
       });
