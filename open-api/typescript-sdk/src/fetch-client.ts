@@ -1,6 +1,6 @@
 /**
  * Immich
- * 1.127.0
+ * 1.128.0
  * DO NOT MODIFY - This file has been generated using oazapfts.
  * See https://www.npmjs.com/package/oazapfts
  */
@@ -529,7 +529,6 @@ export type AssetFaceCreateDto = {
     imageHeight: number;
     imageWidth: number;
     personId: string;
-    sourceType: SourceType;
     width: number;
     x: number;
     y: number;
