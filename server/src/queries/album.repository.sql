@@ -10,19 +10,9 @@ select
       (
         select
           "id",
-          "email",
-          "createdAt",
-          "profileImagePath",
-          "isAdmin",
-          "shouldChangePassword",
-          "deletedAt",
-          "oauthId",
-          "updatedAt",
-          "storageLabel",
           "name",
-          "quotaSizeInBytes",
-          "quotaUsageInBytes",
-          "status",
+          "email",
+          "profileImagePath",
           "profileChangedAt"
         from
           "users"
@@ -36,7 +26,7 @@ select
     from
       (
         select
-          "album_users".*,
+          "album_users"."role",
           (
             select
               to_json(obj)
@@ -44,19 +34,9 @@ select
               (
                 select
                   "id",
-                  "email",
-                  "createdAt",
-                  "profileImagePath",
-                  "isAdmin",
-                  "shouldChangePassword",
-                  "deletedAt",
-                  "oauthId",
-                  "updatedAt",
-                  "storageLabel",
                   "name",
-                  "quotaSizeInBytes",
-                  "quotaUsageInBytes",
-                  "status",
+                  "email",
+                  "profileImagePath",
                   "profileChangedAt"
                 from
                   "users"
@@ -118,19 +98,9 @@ select
       (
         select
           "id",
-          "email",
-          "createdAt",
-          "profileImagePath",
-          "isAdmin",
-          "shouldChangePassword",
-          "deletedAt",
-          "oauthId",
-          "updatedAt",
-          "storageLabel",
           "name",
-          "quotaSizeInBytes",
-          "quotaUsageInBytes",
-          "status",
+          "email",
+          "profileImagePath",
           "profileChangedAt"
         from
           "users"
@@ -144,7 +114,7 @@ select
     from
       (
         select
-          "album_users".*,
+          "album_users"."role",
           (
             select
               to_json(obj)
@@ -152,19 +122,9 @@ select
               (
                 select
                   "id",
-                  "email",
-                  "createdAt",
-                  "profileImagePath",
-                  "isAdmin",
-                  "shouldChangePassword",
-                  "deletedAt",
-                  "oauthId",
-                  "updatedAt",
-                  "storageLabel",
                   "name",
-                  "quotaSizeInBytes",
-                  "quotaUsageInBytes",
-                  "status",
+                  "email",
+                  "profileImagePath",
                   "profileChangedAt"
                 from
                   "users"
@@ -201,19 +161,23 @@ order by
 
 -- AlbumRepository.getMetadataForIds
 select
-  "albums"."id" as "albumId",
-  min("assets"."localDateTime") as "startDate",
-  max("assets"."localDateTime") as "endDate",
+  "album_assets"."albumsId" as "albumId",
+  min(
+    ("assets"."localDateTime" AT TIME ZONE 'UTC'::text)::date
+  ) as "startDate",
+  max(
+    ("assets"."localDateTime" AT TIME ZONE 'UTC'::text)::date
+  ) as "endDate",
+  max("assets"."updatedAt") as "lastModifiedAssetTimestamp",
   count("assets"."id")::int as "assetCount"
 from
-  "albums"
-  inner join "albums_assets_assets" as "album_assets" on "album_assets"."albumsId" = "albums"."id"
-  inner join "assets" on "assets"."id" = "album_assets"."assetsId"
+  "assets"
+  inner join "albums_assets_assets" as "album_assets" on "album_assets"."assetsId" = "assets"."id"
 where
-  "albums"."id" in ($1)
+  "album_assets"."albumsId" in ($1)
   and "assets"."deletedAt" is null
 group by
-  "albums"."id"
+  "album_assets"."albumsId"
 
 -- AlbumRepository.getOwned
 select
@@ -225,19 +189,9 @@ select
       (
         select
           "id",
-          "email",
-          "createdAt",
-          "profileImagePath",
-          "isAdmin",
-          "shouldChangePassword",
-          "deletedAt",
-          "oauthId",
-          "updatedAt",
-          "storageLabel",
           "name",
-          "quotaSizeInBytes",
-          "quotaUsageInBytes",
-          "status",
+          "email",
+          "profileImagePath",
           "profileChangedAt"
         from
           "users"
@@ -251,7 +205,7 @@ select
     from
       (
         select
-          "album_users".*,
+          "album_users"."role",
           (
             select
               to_json(obj)
@@ -259,19 +213,9 @@ select
               (
                 select
                   "id",
-                  "email",
-                  "createdAt",
-                  "profileImagePath",
-                  "isAdmin",
-                  "shouldChangePassword",
-                  "deletedAt",
-                  "oauthId",
-                  "updatedAt",
-                  "storageLabel",
                   "name",
-                  "quotaSizeInBytes",
-                  "quotaUsageInBytes",
-                  "status",
+                  "email",
+                  "profileImagePath",
                   "profileChangedAt"
                 from
                   "users"
@@ -315,7 +259,7 @@ select
     from
       (
         select
-          "album_users".*,
+          "album_users"."role",
           (
             select
               to_json(obj)
@@ -323,19 +267,9 @@ select
               (
                 select
                   "id",
-                  "email",
-                  "createdAt",
-                  "profileImagePath",
-                  "isAdmin",
-                  "shouldChangePassword",
-                  "deletedAt",
-                  "oauthId",
-                  "updatedAt",
-                  "storageLabel",
                   "name",
-                  "quotaSizeInBytes",
-                  "quotaUsageInBytes",
-                  "status",
+                  "email",
+                  "profileImagePath",
                   "profileChangedAt"
                 from
                   "users"
@@ -356,19 +290,9 @@ select
       (
         select
           "id",
-          "email",
-          "createdAt",
-          "profileImagePath",
-          "isAdmin",
-          "shouldChangePassword",
-          "deletedAt",
-          "oauthId",
-          "updatedAt",
-          "storageLabel",
           "name",
-          "quotaSizeInBytes",
-          "quotaUsageInBytes",
-          "status",
+          "email",
+          "profileImagePath",
           "profileChangedAt"
         from
           "users"
@@ -427,19 +351,9 @@ select
       (
         select
           "id",
-          "email",
-          "createdAt",
-          "profileImagePath",
-          "isAdmin",
-          "shouldChangePassword",
-          "deletedAt",
-          "oauthId",
-          "updatedAt",
-          "storageLabel",
           "name",
-          "quotaSizeInBytes",
-          "quotaUsageInBytes",
-          "status",
+          "email",
+          "profileImagePath",
           "profileChangedAt"
         from
           "users"

@@ -7,7 +7,6 @@ import { WithoutProperty } from 'src/repositories/asset.repository';
 import { ArgOf } from 'src/repositories/event.repository';
 import { BaseService } from 'src/services/base.service';
 import { JobOf } from 'src/types';
-import { getAssetFiles } from 'src/utils/asset.util';
 import { getCLIPModelInfo, isSmartSearchEnabled } from 'src/utils/misc';
 import { usePagination } from 'src/utils/pagination';
 
@@ -107,8 +106,8 @@ export class SmartInfoService extends BaseService {
       return JobStatus.SKIPPED;
     }
 
-    const [asset] = await this.assetRepository.getByIds([id], { files: true });
-    if (!asset) {
+    const asset = await this.assetJobRepository.getForClipEncoding(id);
+    if (!asset || asset.files.length !== 1) {
       return JobStatus.FAILED;
     }
 
@@ -116,14 +115,9 @@ export class SmartInfoService extends BaseService {
       return JobStatus.SKIPPED;
     }
 
-    const { previewFile } = getAssetFiles(asset.files);
-    if (!previewFile) {
-      return JobStatus.FAILED;
-    }
-
     const embedding = await this.machineLearningRepository.encodeImage(
       machineLearning.urls,
-      previewFile.path,
+      asset.files[0].path,
       machineLearning.clip,
     );
 

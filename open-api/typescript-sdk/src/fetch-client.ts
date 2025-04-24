@@ -1,6 +1,6 @@
 /**
  * Immich
- * 1.130.3
+ * 1.132.1
  * DO NOT MODIFY - This file has been generated using oazapfts.
  * See https://www.npmjs.com/package/oazapfts
  */
@@ -687,12 +687,16 @@ export type TestEmailResponseDto = {
     messageId: string;
 };
 export type OAuthConfigDto = {
+    codeChallenge?: string;
     redirectUri: string;
+    state?: string;
 };
 export type OAuthAuthorizeResponseDto = {
     url: string;
 };
 export type OAuthCallbackDto = {
+    codeVerifier?: string;
+    state?: string;
     url: string;
 };
 export type PartnerResponseDto = {
@@ -924,6 +928,7 @@ export type SmartSearchDto = {
     isNotInAlbum?: boolean;
     isOffline?: boolean;
     isVisible?: boolean;
+    language?: string;
     lensModel?: string | null;
     libraryId?: string | null;
     make?: string;
@@ -1178,6 +1183,11 @@ export type SystemConfigFFmpegDto = {
     transcode: TranscodePolicy;
     twoPass: boolean;
 };
+export type SystemConfigGeneratedFullsizeImageDto = {
+    enabled: boolean;
+    format: ImageFormat;
+    quality: number;
+};
 export type SystemConfigGeneratedImageDto = {
     format: ImageFormat;
     quality: number;
@@ -1186,6 +1196,7 @@ export type SystemConfigGeneratedImageDto = {
 export type SystemConfigImageDto = {
     colorspace: Colorspace;
     extractEmbedded: boolean;
+    fullsize: SystemConfigGeneratedFullsizeImageDto;
     preview: SystemConfigGeneratedImageDto;
     thumbnail: SystemConfigGeneratedImageDto;
 };
@@ -2311,26 +2322,26 @@ export function addMemoryAssets({ id, bulkIdsDto }: {
         body: bulkIdsDto
     })));
 }
-export function getNotificationTemplate({ name, templateDto }: {
+export function getNotificationTemplateAdmin({ name, templateDto }: {
     name: string;
     templateDto: TemplateDto;
 }, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: TemplateResponseDto;
-    }>(`/notifications/templates/${encodeURIComponent(name)}`, oazapfts.json({
+    }>(`/notifications/admin/templates/${encodeURIComponent(name)}`, oazapfts.json({
         ...opts,
         method: "POST",
         body: templateDto
     })));
 }
-export function sendTestEmail({ systemConfigSmtpDto }: {
+export function sendTestEmailAdmin({ systemConfigSmtpDto }: {
     systemConfigSmtpDto: SystemConfigSmtpDto;
 }, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: TestEmailResponseDto;
-    }>("/notifications/test-email", oazapfts.json({
+    }>("/notifications/admin/test-email", oazapfts.json({
         ...opts,
         method: "POST",
         body: systemConfigSmtpDto
@@ -3572,6 +3583,7 @@ export enum AssetJobName {
     TranscodeVideo = "transcode-video"
 }
 export enum AssetMediaSize {
+    Fullsize = "fullsize",
     Preview = "preview",
     Thumbnail = "thumbnail"
 }
@@ -3621,6 +3633,7 @@ export enum PathEntityType {
 }
 export enum PathType {
     Original = "original",
+    Fullsize = "fullsize",
     Preview = "preview",
     Thumbnail = "thumbnail",
     EncodedVideo = "encoded_video",
